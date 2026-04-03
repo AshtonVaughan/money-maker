@@ -1,162 +1,100 @@
-# MT5 Live Scalping System
+<div align="center">
 
-A deep learning-based scalping system for EUR/USD that uses LSTM neural networks to predict Take Profit (TP) and Stop Loss (SL) hit probabilities in real-time.
+# money-maker
 
-## Features
+**LSTM-powered EUR/USD scalping signal engine for MetaTrader 5**
 
-- **Live Data Collection**: Fetches EUR/USD tick data from MT5 every 3 seconds
-- **Deep Learning Model**: LSTM neural network for sequence pattern recognition
-- **TP/SL Prediction**: Predicts probability of hitting TP (2 pips) vs SL (1.5 pips)
-- **Forward Testing**: Logs predictions and signals without executing trades
-- **Real-time Processing**: Continuous prediction loop with live market data
+[![Python](https://img.shields.io/badge/Python-3.8+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
+[![MetaTrader](https://img.shields.io/badge/MetaTrader-5-2962FF?style=flat-square)](https://www.metatrader5.com/)
+[![License](https://img.shields.io/badge/license-MIT-94A3B8?style=flat-square)](.)
 
-## Requirements
+*Real-time LSTM model that predicts TP/SL hit probability on EUR/USD. Forward testing only - no live execution.*
 
-- MetaTrader 5 terminal installed and running
-- Python 3.8+
-- MT5 account (demo or live)
+</div>
 
-## Installation
+<br>
 
-1. Install dependencies:
-```bash
-pip install -r requirements.txt
+## How It Works
+
+Tick data is fetched from MetaTrader 5 every 3 seconds, processed into fixed-length sequences, and passed through a trained LSTM network. The model outputs two probabilities: the likelihood of hitting the 2-pip Take Profit first vs the 1.5-pip Stop Loss first. All signals are logged - no orders are placed.
+
+```
+MT5 Tick Feed (every 3s)
+        |
+        v
+  Feature Pipeline       <- normalization, sequence windowing
+        |
+        v
+    LSTM Model            <- sequence encoder + dense output head
+        |
+        v
+  Signal Logger           <- timestamped TP/SL probabilities, no execution
 ```
 
-2. Install MetaTrader 5 terminal from [MetaQuotes](https://www.metatrader5.com/)
+| Parameter     | Value              |
+|---------------|--------------------|
+| Symbol        | EUR/USD            |
+| Tick interval | 3 seconds          |
+| TP target     | 2 pips             |
+| SL target     | 1.5 pips           |
+| Model         | LSTM (multi-layer) |
+| Mode          | Forward testing    |
 
-3. (Optional) Create `.env` file for MT5 credentials:
+<br>
+
+## Quick Start
+
+### 1. Install
+
 ```bash
-cp .env.example .env
-# Edit .env with your MT5 credentials
+git clone https://github.com/AshtonVaughan/money-maker.git
+cd money-maker && pip install -r requirements.txt
 ```
 
-If you don't provide credentials, the system will use the currently logged-in MT5 terminal.
+### 2. Configure (optional)
 
-## Usage
+Create a `.env` file to connect to a specific account:
 
-### Step 1: Train the Model
+```env
+MT5_LOGIN=123456
+MT5_PASSWORD=your_password
+MT5_SERVER=YourBroker-Demo
+```
 
-First, train the LSTM model on historical data:
+If no `.env` is present, the system uses the currently active MT5 terminal session.
+
+### 3. Train the model
 
 ```bash
 python trainer.py
 ```
 
-This will:
-- Download 3 months of historical EUR/USD data from MT5
-- Calculate technical indicators
-- Create training sequences
-- Train the LSTM model
-- Save the model to `models/` directory
+Downloads 3 months of historical EUR/USD data from MT5, builds sequences, trains the LSTM, and saves weights to `models/`.
 
-### Step 2: Run Live Predictions
-
-Start the live prediction system:
+### 4. Run live predictions
 
 ```bash
 python main.py
 ```
 
-Or with MT5 credentials:
-```bash
-python main.py --login YOUR_LOGIN --password YOUR_PASSWORD --server YOUR_SERVER
-```
+Polls tick data every 3 seconds. Predictions are written to log with timestamps.
 
-The system will:
-- Connect to MT5
-- Load the trained model
-- Fetch live tick data every 3 seconds
-- Generate TP/SL probability predictions
-- Log all predictions to CSV files in `logs/` directory
+<br>
 
-### Step 3: View Results
+## Requirements
 
-Check the log files in `logs/` directory for all predictions and signals.
+- MetaTrader 5 terminal (installed and running)
+- MT5 account (demo or live)
+- Python 3.8+
 
-## Configuration
+<br>
 
-Edit `config.py` to customize:
+## Disclaimer
 
-- `TAKE_PROFIT_PIPS`: TP level (default: 2.0 pips)
-- `STOP_LOSS_PIPS`: SL level (default: 1.5 pips)
-- `LIVE_UPDATE_INTERVAL_SECONDS`: Update frequency (default: 3 seconds)
-- `SEQUENCE_LENGTH`: Input sequence length (default: 60 timesteps)
-- `TP_PROBABILITY_THRESHOLD`: Minimum TP probability for BUY signal (default: 0.6)
-- `SL_PROBABILITY_THRESHOLD`: Minimum SL probability for SELL signal (default: 0.6)
+This project is experimental and for educational purposes only. It does not constitute financial advice and is not intended for live trading with real capital. The author accepts no liability for financial losses arising from use of this software.
 
-## Project Structure
+<br>
 
-```
-MoneyMaker/
-├── config.py                  # Configuration settings
-├── mt5_connector.py           # MT5 API integration
-├── data_processor.py          # Feature engineering
-├── model.py                   # LSTM model architecture
-├── trainer.py                 # Training pipeline
-├── live_predictor.py          # Real-time predictions
-├── forward_test_logger.py    # Signal logging
-├── main.py                    # Main application
-├── models/                    # Saved model checkpoints
-├── logs/                      # Prediction logs
-└── requirements.txt           # Dependencies
-```
+## License
 
-## How It Works
-
-1. **Data Collection**: MT5 connector fetches live tick data every 3 seconds
-2. **Feature Engineering**: Technical indicators are calculated (RSI, MACD, Bollinger Bands, etc.)
-3. **Sequence Creation**: Last 60 timesteps are used as input to the LSTM
-4. **Prediction**: Model outputs two probabilities: P(TP hit) and P(SL hit)
-5. **Signal Generation**: BUY/SELL/HOLD signals based on probability thresholds
-6. **Logging**: All predictions are logged to CSV for forward testing
-
-## Model Architecture
-
-- **Input**: 60 timesteps × N features (technical indicators)
-- **LSTM Layers**: 2 layers (64 and 32 units) with dropout
-- **Dense Layers**: 32 and 16 units with dropout
-- **Output**: 2 probabilities [P(TP), P(SL)]
-
-## Cloud GPU Training
-
-For training on large datasets (1M+ bars) with GPU acceleration:
-
-1. **Download Historical Data**:
-   ```bash
-   python download_historical_data.py --bars 1000000 --sources dukascopy
-   ```
-
-2. **Upload to Cloud GPU** (Vast.ai, RunPod, etc.)
-
-3. **Train on GPU**:
-   ```bash
-   python train_gpu.py --data data/historical/eurusd_historical_YYYYMMDD.h5 --epochs 200
-   ```
-
-See `CLOUD_GPU_SETUP.md` for detailed instructions.
-
-## Notes
-
-- The system does NOT execute trades - it only logs predictions
-- Make sure MT5 terminal is running before starting the system
-- For large datasets, use cloud GPU training (see CLOUD_GPU_SETUP.md)
-- Model requires retraining periodically for best performance
-- All predictions are logged for analysis and forward testing
-
-## Troubleshooting
-
-**MT5 Connection Failed**:
-- Ensure MT5 terminal is installed and running
-- Check if MT5 terminal is logged in
-- Verify credentials in `.env` file
-
-**Model Not Found**:
-- Run `trainer.py` first to train a model
-- Check `models/` directory for `.h5` files
-
-**Prediction Errors**:
-- Ensure enough historical data is available
-- Check that MT5 terminal has internet connection
-- Verify symbol name (EURUSD) is available in MT5
-
+MIT
